@@ -1,0 +1,4 @@
+1. **stage 1**
+fetched HTML pages are saved locally into a cache/ directory so that development runs read from the local disk instead of repeatedly hitting the live website
+custom identifier used in requests (FlyRankInternship-A9/1.0 (+[https://github.com/Ansa-a](https://github.com/Ansa-a))).
+strict timeout is enforced, and responses are checked for a 200 status code before any HTML is parsed or saved.
