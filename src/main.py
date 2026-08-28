@@ -1,3 +1,4 @@
+import csv
 import os
 import time
 from bs4 import BeautifulSoup
@@ -65,10 +66,24 @@ def extract_book_data(book):
   }
 
 
+def save_books_to_csv(books_list, filename="books_output.csv"):
+  """Saves a list of book dictionaries to a CSV file using utf-8-sig."""
+  fieldnames = ["title", "price", "availability", "rating"]
+
+  with open(filename, mode="w", encoding="utf-8-sig", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    for book in books_list:
+      writer.writerow(book)
+
+  print(f"\nSUCCESS: Saved {len(books_list)} books to {filename}")
+
+
 def scrape_three_pages():
-  """Discovers and fetches the first 3 catalogue pages sequentially, then extracts books."""
+  """Discovers and fetches 3 pages, extracts books, and saves to CSV."""
   current_url = START_URL
   max_pages = 3
+  all_books = []  # Accumulator list for all extracted books
 
   for page_num in range(1, max_pages + 1):
     cache_filename = f"cache/catalogue-page-{page_num}.html"
@@ -79,15 +94,14 @@ def scrape_three_pages():
       print(f"Failed to retrieve page {page_num}. Stopping.")
       break
 
-    # --- ADDED: Extract books from the current page's HTML ---
+    # Extract books from the current page's HTML
     soup = BeautifulSoup(html_content, "html.parser")
     books = soup.select("article.product_pod")
     print(f"Found {len(books)} books on this page.")
 
     for book in books:
       book_data = extract_book_data(book)
-      print(book_data)
-    # --------------------------------------------------------
+      all_books.append(book_data)  # Add book data to our master list
 
     # If this is the last page we need, stop discovery
     if page_num == max_pages:
@@ -99,11 +113,13 @@ def scrape_three_pages():
 
     if next_button and next_button.get("href"):
       next_href = next_button["href"]
-      # Build absolute URL using base path
       current_url = BASE_URL + next_href
     else:
       print("No 'next' page link found. Ending discovery early.")
       break
+
+  # Save all accumulated books to CSV after the loop finishes
+  save_books_to_csv(all_books)
 
 
 if __name__ == "__main__":
