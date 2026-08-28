@@ -79,13 +79,13 @@ def save_books_to_csv(books_list, filename="books_output.csv"):
   print(f"\nSUCCESS: Saved {len(books_list)} books to {filename}")
 
 
-def scrape_three_pages():
-  """Discovers and fetches 3 pages, extracts books, and saves to CSV."""
+def scrape_all_pages():
+  """Dynamically discovers and scrapes all pages until no 'next' link remains."""
   current_url = START_URL
-  max_pages = 3
-  all_books = []  # Accumulator list for all extracted books
+  all_books = []
+  page_num = 1
 
-  for page_num in range(1, max_pages + 1):
+  while current_url:
     cache_filename = f"cache/catalogue-page-{page_num}.html"
     print(f"\n--- Processing Page {page_num}: {current_url} ---")
 
@@ -94,33 +94,29 @@ def scrape_three_pages():
       print(f"Failed to retrieve page {page_num}. Stopping.")
       break
 
-    # Extract books from the current page's HTML
+    # Parse and extract books
     soup = BeautifulSoup(html_content, "html.parser")
     books = soup.select("article.product_pod")
     print(f"Found {len(books)} books on this page.")
 
     for book in books:
       book_data = extract_book_data(book)
-      all_books.append(book_data)  # Add book data to our master list
+      all_books.append(book_data)
 
-    # If this is the last page we need, stop discovery
-    if page_num == max_pages:
-      print("\nReached target scope of 3 pages.")
-      break
-
-    # Use BeautifulSoup to find the 'next' page link for the next iteration
+    # Find the 'next' button for the subsequent page
     next_button = soup.select_one("li.next > a")
 
     if next_button and next_button.get("href"):
       next_href = next_button["href"]
       current_url = BASE_URL + next_href
+      page_num += 1
     else:
-      print("No 'next' page link found. Ending discovery early.")
-      break
+      print("\nNo more 'next' pages found. Reached the end of the catalog!")
+      current_url = None  # This exits the while loop gracefully
 
-  # Save all accumulated books to CSV after the loop finishes
-  save_books_to_csv(all_books)
+  # Save the massive collection of all books across all pages
+  save_books_to_csv(all_books, filename="all_books_output.csv")
 
 
 if __name__ == "__main__":
-  scrape_three_pages()
+  scrape_all_pages()
