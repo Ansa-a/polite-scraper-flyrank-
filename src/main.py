@@ -49,8 +49,24 @@ def fetch_and_cache_page(url, filename):
     return None
 
 
+def extract_book_data(book):
+  """Extracts title, price, availability, and rating from a single book pod."""
+  title = book.h3.find("a")["title"]
+  price = book.select_one("p.price_color").text
+  availability = book.select_one("p.instock.availability").text.strip()
+  rating_classes = book.select_one("p.star-rating")["class"]
+  rating = rating_classes[1]
+
+  return {
+      "title": title,
+      "price": price,
+      "availability": availability,
+      "rating": rating,
+  }
+
+
 def scrape_three_pages():
-  """Discovers and fetches the first 3 catalogue pages sequentially."""
+  """Discovers and fetches the first 3 catalogue pages sequentially, then extracts books."""
   current_url = START_URL
   max_pages = 3
 
@@ -63,13 +79,22 @@ def scrape_three_pages():
       print(f"Failed to retrieve page {page_num}. Stopping.")
       break
 
+    # --- ADDED: Extract books from the current page's HTML ---
+    soup = BeautifulSoup(html_content, "html.parser")
+    books = soup.select("article.product_pod")
+    print(f"Found {len(books)} books on this page.")
+
+    for book in books:
+      book_data = extract_book_data(book)
+      print(book_data)
+    # --------------------------------------------------------
+
     # If this is the last page we need, stop discovery
     if page_num == max_pages:
       print("\nReached target scope of 3 pages.")
       break
 
     # Use BeautifulSoup to find the 'next' page link for the next iteration
-    soup = BeautifulSoup(html_content, "html.parser")
     next_button = soup.select_one("li.next > a")
 
     if next_button and next_button.get("href"):
